@@ -59,9 +59,13 @@ using namespace std;
 
 class Customer {
 public:
-    float credit() { return 0.0; };
-
-    double enquireBalance() { return balance; };
+    void setCredit(double val) {
+        if (isPrepaid) {
+            balance += val;
+        } else {
+            totalCallDuration += val;
+        }
+    };
 
     bool getIsPrepaid() {
         return isPrepaid;
@@ -77,6 +81,10 @@ public:
 
     double getBalance() {
         return balance;
+    }
+
+    double getTotalCallDuration() {
+        return totalCallDuration;
     }
 
     long getId() {
@@ -106,13 +114,6 @@ public:
         phoneNumber = sPhoneNumber;
         balance = dBalance;
     }
-
-    explicit PrepaidCustomer(Customer &templateCustomer) {
-        isPrepaid = true;
-        name = templateCustomer.getName();
-        phoneNumber = templateCustomer.getPhoneNumber();
-        balance = templateCustomer.getBalance();
-    }
 };
 
 class PostpaidCustomer : public Customer {
@@ -122,13 +123,6 @@ public:
         name = sName;
         phoneNumber = sPhoneNumber;
         balance = dBalance;
-    }
-
-    explicit PostpaidCustomer(Customer &templateCustomer) {
-        isPrepaid = false;
-        name = templateCustomer.getName();
-        phoneNumber = templateCustomer.getPhoneNumber();
-        balance = templateCustomer.getBalance();
     }
 };
 
@@ -154,24 +148,40 @@ public:
         }
     }
 
-    Customer *searchByName(const string requiredName) {
-        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
-                               [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
+    unsigned int searchByName(const string requiredName, deque<Customer> &result) {
+        result.clear();
 
-        if (it == prepaidCustomers.end()) {
+        auto it = prepaidCustomers.begin();
+        do {
+            it = std::find_if(it, prepaidCustomers.end(),
+                              [requiredName](Customer &cus) -> bool {
+                                  return (cus.getName() == requiredName);
+                              });
 
-            auto it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
-                                   [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
-
-            if (it == postpaidCustomers.end()) {
-                return nullptr;
+            if (it != prepaidCustomers.end()) {
+                result.push_back(*it);
             } else {
-                return it._M_cur;
+                break;
             }
+            it++;
+        } while (it != prepaidCustomers.end());
 
-        } else {
-            return it._M_cur;
-        }
+        it = postpaidCustomers.begin();
+        do {
+            it = std::find_if(it, postpaidCustomers.end(),
+                              [requiredName](Customer &cus) -> bool {
+                                  return (cus.getName() == requiredName);
+                              });
+
+            if (it != postpaidCustomers.end()) {
+                result.push_back(*it);
+            } else {
+                break;
+            }
+            it++;
+        } while (it != postpaidCustomers.end());
+
+        return result.size();
     }
 
     Customer *searchByNumber(const string &sPhoneNumber) {
@@ -210,35 +220,96 @@ public:
     }
 
     void deleteCustomer(Customer &delCustomer) {
-        deque<Customer> *dequeuePtr = nullptr;
+        deque<Customer> *dequePtr = nullptr;
         if (delCustomer.getIsPrepaid()) {
-            dequeuePtr = &prepaidCustomers;
+            dequePtr = &prepaidCustomers;
         } else {
-            dequeuePtr = &postpaidCustomers;
+            dequePtr = &postpaidCustomers;
         }
 
-        for (auto it = dequeuePtr->begin(); it != dequeuePtr->end(); ++it)
+        for (auto it = dequePtr->begin(); it != dequePtr->end(); ++it)
             if (it->getName() == delCustomer.getName() &&
                 it->getPhoneNumber() == delCustomer.getPhoneNumber()) {
-                dequeuePtr->erase(it);
+                dequePtr->erase(it);
                 break;
             }
     }
 
-    /*
-     //   fill in getAveragePostPaidCallDuration (fill in);
-     //   fill in queryPostpaidCustomers (fill in)
-        fill in getAveragePrePaidBalance (fill in);
-     //   fill in queryPrepaidCustomers (fill in)
-    */
+    template<typename _Predicate>
+    unsigned int queryPrepaidCustomers(_Predicate filter, deque<Customer> &result) {
+        result.clear();
+
+        auto it = prepaidCustomers.begin();
+        do {
+            it = std::find_if(it, prepaidCustomers.end(), filter);
+
+            if (it != prepaidCustomers.end()) {
+                result.push_back(*it);
+            } else {
+                break;
+            }
+            it++;
+        } while (it != prepaidCustomers.end());
+
+        return result.size();
+    }
+
+    template<typename _Predicate>
+    unsigned int queryPostpaidCustomers(_Predicate filter, deque<Customer> &result) {
+        result.clear();
+
+        auto it = postpaidCustomers.begin();
+        do {
+            it = std::find_if(it, postpaidCustomers.end(), filter);
+
+            if (it != postpaidCustomers.end()) {
+                result.push_back(*it);
+            } else {
+                break;
+            }
+            it++;
+        } while (it != postpaidCustomers.end());
+
+        return result.size();
+    }
+
+    double getAveragePostPaidCallDuration() {
+        if (postpaidCustomers.size() == 0)
+            return 0.0;
+
+        double avSum = 0.0;
+
+        for (auto &s: postpaidCustomers) {
+            avSum += s.getTotalCallDuration();
+        }
+
+        return double(avSum / postpaidCustomers.size());
+    }
+
+    double getAveragePrePaidBalance() {
+        if (prepaidCustomers.size() == 0)
+            return 0.0;
+
+        double avSum = 0.0;
+
+        for (auto &s: prepaidCustomers) {
+            avSum += s.getBalance();
+        }
+
+        return double(avSum / prepaidCustomers.size());
+    }
 
     void displayAll() {
-        for (auto &s: prepaidCustomers) {
-            cout << "prep: Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
-        }
-        for (auto &s: postpaidCustomers) {
-            cout << "post: Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
-        }
+
+        for_each(prepaidCustomers.begin(), prepaidCustomers.end(),
+                 [](Customer &item) {
+                     cout << "prep: Name: " << item.getName() << " PhoneNumber: " << item.getPhoneNumber() << endl;
+                 });
+
+        for_each(postpaidCustomers.begin(), postpaidCustomers.end(),
+                 [](Customer &item) {
+                     cout << "post: Name: " << item.getName() << " PhoneNumber: " << item.getPhoneNumber() << endl;
+                 });
     }
 
     auto prepaidCount() {
@@ -292,12 +363,13 @@ int main() {
     }
 
     {// UT test 3
-        if (billing.searchByName("msFirst") == nullptr) {
+        deque<Customer> result;
+        if (billing.searchByName("msFirst", result) != 1) {
             cout << " UT3 failed : msFirst not found " << endl;
             utError = true;
         }
 
-        if (billing.searchByName("none") != nullptr) {
+        if (billing.searchByName("none", result) > 0) {
             cout << " UT3 failed : none is found " << endl;
             utError = true;
         }
@@ -314,7 +386,20 @@ int main() {
             utError = true;
         }
     }
-    
+
+    {// UT test 5
+        PostpaidCustomer msNext1("msNext", "0005", 0.0);
+        billing.addCustomer(msNext1);
+
+        PostpaidCustomer msNext2("msNext", "0004", 0.0);
+        billing.addCustomer(msNext2);
+
+        string requiredName = "msNext";
+        deque<Customer> result;
+        billing.queryPostpaidCustomers(
+                [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); },
+                result);
+    }
     billing.displayAll();
 
     if (!utError)
