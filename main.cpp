@@ -87,10 +87,6 @@ public:
         return id = newId;
     }
 
-    ~Customer() {
-        cout << "--del " << name << endl;
-    }
-
     Customer() { id = -1; };
 protected:
 
@@ -139,43 +135,15 @@ public:
 //********************************************************
 class MobileBilling {
 
-private:
-    struct MyClassCompPhoneNumber {
-        explicit MyClassCompPhoneNumber(const string &arg) { phoneNumber = arg; };
-
-        inline bool operator()(Customer &item) const { return (phoneNumber == item.getPhoneNumber()); }
-
-    private:
-        string phoneNumber;
-    };
-
-    struct MyClassCompId {
-        explicit MyClassCompId(long arg) { id = arg; };
-
-        inline bool operator()(Customer &item) const { return (id == item.getId()); }
-
-    private:
-        long id;
-    };
-
-    struct MyClassCompName {
-        explicit MyClassCompName(const string &arg1) {
-            name = arg1;
-        };
-
-        inline bool operator()(Customer &item) const {
-            return (name == item.getName());
-        }
-
-    private:
-        string name;
-    };
-
 public:
     Customer *searchById(int testId) {
-        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(), MyClassCompId(testId));
+        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
+                               [testId](Customer &cus) -> bool { return (cus.getId() == testId); });
+
         if (it == prepaidCustomers.end()) {
-            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(), MyClassCompId(testId));
+            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
+                              [testId](Customer &cus) -> bool { return (cus.getId() == testId); });
+
             if (it == postpaidCustomers.end()) {
                 return nullptr;
             } else {
@@ -187,29 +155,35 @@ public:
     }
 
     Customer *searchByName(Customer &itemCustomer) {
+        string requiredName = itemCustomer.getName();
+
+        deque<Customer> *dequeuePtr = nullptr;
         if (itemCustomer.getIsPrepaid()) {
-            auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
-                                   MyClassCompName(itemCustomer.getName()));
-            if (it == prepaidCustomers.end()) {
-                return nullptr;
-            } else {
-                return it._M_cur;
-            }
+            dequeuePtr = &prepaidCustomers;
         } else {
-            auto it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
-                                   MyClassCompName(itemCustomer.getName()));
-            if (it == postpaidCustomers.end()) {
-                return nullptr;
-            } else {
-                return it._M_cur;
-            }
-        }
+            dequeuePtr = &postpaidCustomers;
         }
 
+        auto it = std::find_if(dequeuePtr->begin(), dequeuePtr->end(),
+                               [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
+
+        if (it == dequeuePtr->end()) {
+            return nullptr;
+        } else {
+            return it._M_cur;
+        }
+    }
+
     Customer *searchByPhoneNumber(const string &sPhoneNumber) {
-        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
+                               [sPhoneNumber](Customer &cus) -> bool {
+                                   return (cus.getPhoneNumber() == sPhoneNumber);
+                               });
+
         if (it == prepaidCustomers.end()) {
-            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
+                              [sPhoneNumber](Customer &cus) -> bool { return (cus.getPhoneNumber() == sPhoneNumber); });
+
             if (it == postpaidCustomers.end()) {
                 return nullptr;
             } else {
@@ -220,14 +194,12 @@ public:
         }
     }
 
-    // Note: functions like this should return operation results (success or error value)
-    // But I leave it as is since you did it Void
     void addCustomer(Customer &newCustomer) {
-        if (searchByName(newCustomer) == nullptr) {
+        if (searchByName(newCustomer) != nullptr) {
             cout << "can't add customer: this name is already present";
             return;
         }
-        if (searchByPhoneNumber(newCustomer.getPhoneNumber()) == nullptr) {
+        if (searchByPhoneNumber(newCustomer.getPhoneNumber()) != nullptr) {
             cout << "can't add customer: this phone number is already present";
             return;
         }
@@ -241,32 +213,28 @@ public:
         }
     }
 
-    // Note: functions like this should return operation results (success or error value)
-    // But I leave it as is since you did it Void
     void deleteCustomer(Customer &delCustomer) {
-        Customer *it = searchByPhoneNumber(delCustomer.getPhoneNumber());
-
-        if (it != nullptr &&
-            it->getName() == delCustomer.getName() &&
-            it->getIsPrepaid() == delCustomer.getIsPrepaid()) {
-            // allCustomers.erase(it);
+        deque<Customer> *dequeuePtr = nullptr;
+        if (delCustomer.getIsPrepaid()) {
+            dequeuePtr = &prepaidCustomers;
+        } else {
+            dequeuePtr = &postpaidCustomers;
         }
+
+        for (auto it = dequeuePtr->begin(); it != dequeuePtr->end(); ++it)
+            if (it->getName() == delCustomer.getName() &&
+                it->getPhoneNumber() == delCustomer.getPhoneNumber()) {
+                dequeuePtr->erase(it);
+                break;
+            }
     }
 
-    float getAveragePostPaidCallDuration(Customer customer);
-
-    vector<Customer> queryPostpaidCustomers();
-
-    double getAveragePrePaidBalance(Customer customer);
-
-    vector<Customer> queryPrepaidCustomers();
-
-    void display(long id) {
-        auto it = searchById(id);
-        if (it != nullptr) {
-            cout << "Name: " << it->getName() << " PhoneNumber: " << it->getPhoneNumber() << endl;
-        }
-    }
+    /*
+        fill in getAveragePostPaidCallDuration (fill in);
+        fill in queryPostpaidCustomers (fill in)
+        fill in getAveragePrePaidBalance (fill in);
+        fill in queryPrepaidCustomers (fill in)
+    */
 
     void displayAll() {
         for (auto &s: prepaidCustomers) {
@@ -275,6 +243,14 @@ public:
         for (auto &s: postpaidCustomers) {
             cout << "post: Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
         }
+    }
+
+    auto prepaidCount() {
+        return prepaidCustomers.size();
+    }
+
+    auto postpaidCount() {
+        return postpaidCustomers.size();
     }
 
 private:
@@ -287,23 +263,42 @@ private:
 //********************************************************
 int main() {
     MobileBilling billing;
-    {
+    bool utError = false;
+
+    {// UT test 1
         PrepaidCustomer msFirst("msFirst", "0000", 3.14);
         billing.addCustomer(msFirst);
-        cout << "==================" << endl;
+
         PrepaidCustomer msSecond("msSecond", "0001", 0.0);
         billing.addCustomer(msSecond);
-        cout << "==================" << endl;
+
         PostpaidCustomer msNext("msNext", "0002", 0.0);
         billing.addCustomer(msNext);
-        cout << "==================" << endl;
-        billing.displayAll();
 
-        billing.deleteCustomer(msSecond);
+        if (billing.prepaidCount() != 2 ||
+            billing.postpaidCount() != 1) {
+            cout << " UT1 failed billing.prepaidCount() is " << billing.prepaidCount() << endl;
+            cout << "            billing.postpaidCount() is " << billing.postpaidCount() << endl;
+            utError = true;
+        }
     }
 
-    cout << "==================" << endl;
+    {// UT test 2
+        PrepaidCustomer msDeleteMe("msSecond", "0001", 0.0);
+        billing.deleteCustomer(msDeleteMe);
+
+        if (billing.prepaidCount() != 1 ||
+            billing.postpaidCount() != 1) {
+            cout << " UT2 failed billing.prepaidCount() is " << billing.prepaidCount() << endl;
+            cout << "            billing.postpaidCount() is " << billing.postpaidCount() << endl;
+            utError = true;
+        }
+    }
+
     billing.displayAll();
+
+    if (!utError)
+        cout << "UT Success !!" << endl;
 
     return 0;
 }
