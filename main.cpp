@@ -95,8 +95,8 @@ public:
         return id = newId;
     }
 
-    Customer() { id = -1; };
 protected:
+    Customer() { id = -1; };
 
     long id;
     bool isPrepaid = false;
@@ -274,7 +274,7 @@ public:
     }
 
     double getAveragePostPaidCallDuration() {
-        if (postpaidCustomers.size() == 0)
+        if (postpaidCustomers.empty())
             return 0.0;
 
         double avSum = 0.0;
@@ -287,7 +287,7 @@ public:
     }
 
     double getAveragePrePaidBalance() {
-        if (prepaidCustomers.size() == 0)
+        if (prepaidCustomers.empty())
             return 0.0;
 
         double avSum = 0.0;
@@ -396,9 +396,13 @@ int main() {
 
         string requiredName = "msNext";
         deque<Customer> result;
-        billing.queryPostpaidCustomers(
+        auto num = billing.queryPostpaidCustomers(
                 [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); },
                 result);
+        if (num != 3) {
+            cout << " UT5 failed : num is " << num << endl;
+            utError = true;
+        }
     }
     billing.displayAll();
 
