@@ -136,7 +136,7 @@ public:
 class MobileBilling {
 
 public:
-    Customer *searchById(int testId) {
+    Customer *searchById(int testId) { /// TODO: USELESS !!!!!!!!!!
         auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
                                [testId](Customer &cus) -> bool { return (cus.getId() == testId); });
 
@@ -155,7 +155,6 @@ public:
     }
 
     Customer *searchByName(const string requiredName) {
-
         auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
                                [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
 
@@ -175,7 +174,7 @@ public:
         }
     }
 
-    Customer *searchByPhoneNumber(const string &sPhoneNumber) {
+    Customer *searchByNumber(const string &sPhoneNumber) {
         auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
                                [sPhoneNumber](Customer &cus) -> bool {
                                    return (cus.getPhoneNumber() == sPhoneNumber);
@@ -196,13 +195,13 @@ public:
     }
 
     void addCustomer(Customer &newCustomer) {
-        if (searchByPhoneNumber(newCustomer.getPhoneNumber()) != nullptr) {
+        if (searchByNumber(newCustomer.getPhoneNumber()) != nullptr) {
             cout << "can't add customer: this phone number is already present";
             return;
         }
 
         if (newCustomer.getIsPrepaid()) {
-            newCustomer.setId(prepaidLastIndex);
+            newCustomer.setId(prepaidLastIndex++);
             prepaidCustomers.push_back(newCustomer);
         } else {
             newCustomer.setId(postpaidLastIndex++);
@@ -304,6 +303,18 @@ int main() {
         }
     }
 
+    {// UT test 4
+        if (billing.searchByNumber({"0002"}) == nullptr) {
+            cout << " UT4 failed : 0002 not found " << endl;
+            utError = true;
+        }
+
+        if (billing.searchByNumber({"none"}) != nullptr) {
+            cout << " UT4 failed : none is found " << endl;
+            utError = true;
+        }
+    }
+    
     billing.displayAll();
 
     if (!utError)
