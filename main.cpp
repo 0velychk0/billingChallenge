@@ -186,48 +186,48 @@ public:
         }
     }
 
-    auto searchByName(Customer &itemCustomer) {
+    Customer *searchByName(Customer &itemCustomer) {
         if (itemCustomer.getIsPrepaid()) {
             auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
                                    MyClassCompName(itemCustomer.getName()));
-            return it;
+            if (it == prepaidCustomers.end()) {
+                return nullptr;
+            } else {
+                return it._M_cur;
+            }
         } else {
             auto it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
                                    MyClassCompName(itemCustomer.getName()));
-            return it;
+            if (it == postpaidCustomers.end()) {
+                return nullptr;
+            } else {
+                return it._M_cur;
+            }
         }
-    };
+        }
 
-    bool checkNameIsExist(Customer &itemCustomer) {
-        if (searchByName(itemCustomer) != postpaidCustomers.end())
-            return true;
-        else
-            return false;
-    };
-
-    auto searchByPhoneNumber(const string &sPhoneNumber) {
+    Customer *searchByPhoneNumber(const string &sPhoneNumber) {
         auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
         if (it == prepaidCustomers.end()) {
             it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+            if (it == postpaidCustomers.end()) {
+                return nullptr;
+            } else {
+                return it._M_cur;
+            }
+        } else {
+            return it._M_cur;
         }
-        return it;
-    };
-
-    bool checkPhoneNumberIsExist(const string &sPhoneNumber) {
-        if (searchByPhoneNumber(sPhoneNumber) != postpaidCustomers.end())
-            return true;
-        else
-            return false;
     }
 
     // Note: functions like this should return operation results (success or error value)
     // But I leave it as is since you did it Void
     void addCustomer(Customer &newCustomer) {
-        if (checkNameIsExist(newCustomer)) {
+        if (searchByName(newCustomer) == nullptr) {
             cout << "can't add customer: this name is already present";
             return;
         }
-        if (checkPhoneNumberIsExist(newCustomer.getPhoneNumber())) {
+        if (searchByPhoneNumber(newCustomer.getPhoneNumber()) == nullptr) {
             cout << "can't add customer: this phone number is already present";
             return;
         }
@@ -244,9 +244,9 @@ public:
     // Note: functions like this should return operation results (success or error value)
     // But I leave it as is since you did it Void
     void deleteCustomer(Customer &delCustomer) {
-        auto it = searchByPhoneNumber(delCustomer.getPhoneNumber());
+        Customer *it = searchByPhoneNumber(delCustomer.getPhoneNumber());
 
-        if (it != postpaidCustomers.end() &&
+        if (it != nullptr &&
             it->getName() == delCustomer.getName() &&
             it->getIsPrepaid() == delCustomer.getIsPrepaid()) {
             // allCustomers.erase(it);
