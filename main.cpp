@@ -154,21 +154,22 @@ public:
         }
     }
 
-    Customer *searchByName(Customer &itemCustomer) {
-        string requiredName = itemCustomer.getName();
+    Customer *searchByName(const string requiredName) {
 
-        deque<Customer> *dequeuePtr = nullptr;
-        if (itemCustomer.getIsPrepaid()) {
-            dequeuePtr = &prepaidCustomers;
-        } else {
-            dequeuePtr = &postpaidCustomers;
-        }
-
-        auto it = std::find_if(dequeuePtr->begin(), dequeuePtr->end(),
+        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
                                [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
 
-        if (it == dequeuePtr->end()) {
-            return nullptr;
+        if (it == prepaidCustomers.end()) {
+
+            auto it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
+                                   [requiredName](Customer &cus) -> bool { return (cus.getName() == requiredName); });
+
+            if (it == postpaidCustomers.end()) {
+                return nullptr;
+            } else {
+                return it._M_cur;
+            }
+
         } else {
             return it._M_cur;
         }
@@ -195,10 +196,6 @@ public:
     }
 
     void addCustomer(Customer &newCustomer) {
-        if (searchByName(newCustomer) != nullptr) {
-            cout << "can't add customer: this name is already present";
-            return;
-        }
         if (searchByPhoneNumber(newCustomer.getPhoneNumber()) != nullptr) {
             cout << "can't add customer: this phone number is already present";
             return;
@@ -230,10 +227,10 @@ public:
     }
 
     /*
-        fill in getAveragePostPaidCallDuration (fill in);
-        fill in queryPostpaidCustomers (fill in)
+     //   fill in getAveragePostPaidCallDuration (fill in);
+     //   fill in queryPostpaidCustomers (fill in)
         fill in getAveragePrePaidBalance (fill in);
-        fill in queryPrepaidCustomers (fill in)
+     //   fill in queryPrepaidCustomers (fill in)
     */
 
     void displayAll() {
@@ -291,6 +288,18 @@ int main() {
             billing.postpaidCount() != 1) {
             cout << " UT2 failed billing.prepaidCount() is " << billing.prepaidCount() << endl;
             cout << "            billing.postpaidCount() is " << billing.postpaidCount() << endl;
+            utError = true;
+        }
+    }
+
+    {// UT test 3
+        if (billing.searchByName("msFirst") == nullptr) {
+            cout << " UT3 failed : msFirst not found " << endl;
+            utError = true;
+        }
+
+        if (billing.searchByName("none") != nullptr) {
+            cout << " UT3 failed : none is found " << endl;
             utError = true;
         }
     }
