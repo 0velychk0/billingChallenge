@@ -159,47 +159,62 @@ private:
     };
 
     struct MyClassCompName {
-        explicit MyClassCompName(const string &arg1, int arg2) {
+        explicit MyClassCompName(const string &arg1) {
             name = arg1;
-            isPrepaid = arg2;
         };
 
         inline bool operator()(Customer &item) const {
-            return ((name == item.getName()) &&
-                    (isPrepaid == item.getIsPrepaid()));
+            return (name == item.getName());
         }
 
     private:
         string name;
-        int isPrepaid;
     };
 
 public:
-    auto searchById(int testId) {
-        auto it = std::find_if(allCustomers.begin(), allCustomers.end(), MyClassCompId(testId));
-        return it;
+    Customer *searchById(int testId) {
+        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(), MyClassCompId(testId));
+        if (it == prepaidCustomers.end()) {
+            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(), MyClassCompId(testId));
+            if (it == postpaidCustomers.end()) {
+                return nullptr;
+            } else {
+                return it._M_cur;
+            }
+        } else {
+            return it._M_cur;
+        }
     }
 
     auto searchByName(Customer &itemCustomer) {
-        auto it = std::find_if(allCustomers.begin(), allCustomers.end(),
-                               MyClassCompName(itemCustomer.getName(), itemCustomer.getIsPrepaid()));
-        return it;
+        if (itemCustomer.getIsPrepaid()) {
+            auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(),
+                                   MyClassCompName(itemCustomer.getName()));
+            return it;
+        } else {
+            auto it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(),
+                                   MyClassCompName(itemCustomer.getName()));
+            return it;
+        }
     };
 
     bool checkNameIsExist(Customer &itemCustomer) {
-        if (searchByName(itemCustomer) != allCustomers.end())
+        if (searchByName(itemCustomer) != postpaidCustomers.end())
             return true;
         else
             return false;
     };
 
     auto searchByPhoneNumber(const string &sPhoneNumber) {
-        auto it = std::find_if(allCustomers.begin(), allCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+        auto it = std::find_if(prepaidCustomers.begin(), prepaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+        if (it == prepaidCustomers.end()) {
+            it = std::find_if(postpaidCustomers.begin(), postpaidCustomers.end(), MyClassCompPhoneNumber(sPhoneNumber));
+        }
         return it;
     };
 
     bool checkPhoneNumberIsExist(const string &sPhoneNumber) {
-        if (searchByPhoneNumber(sPhoneNumber) != allCustomers.end())
+        if (searchByPhoneNumber(sPhoneNumber) != postpaidCustomers.end())
             return true;
         else
             return false;
@@ -219,11 +234,11 @@ public:
 
         if (newCustomer.getIsPrepaid()) {
             newCustomer.setId(prepaidLastIndex);
+            prepaidCustomers.push_back(newCustomer);
         } else {
             newCustomer.setId(postpaidLastIndex++);
+            postpaidCustomers.push_back(newCustomer);
         }
-
-        allCustomers.push_back(newCustomer);
     }
 
     // Note: functions like this should return operation results (success or error value)
@@ -231,11 +246,10 @@ public:
     void deleteCustomer(Customer &delCustomer) {
         auto it = searchByPhoneNumber(delCustomer.getPhoneNumber());
 
-        if (it != allCustomers.end() &&
+        if (it != postpaidCustomers.end() &&
             it->getName() == delCustomer.getName() &&
             it->getIsPrepaid() == delCustomer.getIsPrepaid()) {
-            Customer *activeCustomer = &(*it);
-            allCustomers.erase(it);
+            // allCustomers.erase(it);
         }
     }
 
@@ -249,21 +263,25 @@ public:
 
     void display(long id) {
         auto it = searchById(id);
-        if (it != allCustomers.end()) {
+        if (it != nullptr) {
             cout << "Name: " << it->getName() << " PhoneNumber: " << it->getPhoneNumber() << endl;
         }
     }
 
     void displayAll() {
-        for (auto &s: allCustomers) {
-            cout << "Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
+        for (auto &s: prepaidCustomers) {
+            cout << "prep: Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
+        }
+        for (auto &s: postpaidCustomers) {
+            cout << "post: Name: " << s.getName() << " PhoneNumber: " << s.getPhoneNumber() << endl;
         }
     }
 
 private:
     long prepaidLastIndex = 0;
     long postpaidLastIndex = 0;
-    deque<Customer> allCustomers;
+    deque<Customer> prepaidCustomers;
+    deque<Customer> postpaidCustomers;
 };
 
 //********************************************************
