@@ -1,3 +1,6 @@
+// Name        : Mobille Billing System
+// Author      : ovelychko
+
 #include <iostream>
 
 int main() {
